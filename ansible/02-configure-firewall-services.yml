@@ -1,0 +1,29 @@
+---
+- name: Configure firewall and services for Taxico
+  hosts: taxico
+  become: true
+  vars:
+    allowed_ports: ["22", "80", "443", "8080", "9000", "30000", "30001", "30002"]
+  tasks:
+    - name: Ensure ufw is installed
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+    - name: Allow each required port through the firewall
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: "{{ allowed_ports }}"
+    - name: Enable the firewall with a default deny policy
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
+    - name: List the running containers
+      ansible.builtin.command: docker ps --format "{{ '{{' }}.Names{{ '}}' }}"
+      register: running
+      changed_when: false
+    - name: Show the running containers
+      ansible.builtin.debug:
+        var: running.stdout_lines
