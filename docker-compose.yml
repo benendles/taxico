@@ -1,0 +1,88 @@
+# Local orchestration for Taxico's microservices.
+#
+# The web client talks only to the gateway (:4000); the gateway proxies to the four
+# backend services and forwards Socket.IO traffic. PostgreSQL/PostGIS and Redis are the
+# target data stores from the architecture diagram; services ship in-memory adapters and
+# read DATABASE_URL / REDIS_URL only once persistence is wired in.
+
+x-service-build: &service-build
+  context: .
+  dockerfile: Dockerfile.service
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: taxico
+      POSTGRES_USER: taxico
+      POSTGRES_PASSWORD: taxico
+    ports: ["5432:5432"]
+    volumes: ["taxico_pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taxico"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth:
+    build: { <<: *service-build, args: { SERVICE: auth } }
+    environment:
+      PORT: "4001"
+      JWT_SECRET: "${JWT_SECRET:-taxico-dev-secret-change-me}"
+      DATABASE_URL: "postgres://taxico:taxico@postgres:5432/taxico"
+    depends_on: { postgres: { condition: service_healthy } }
+
+  traffic:
+    build: { <<: *service-build, args: { SERVICE: traffic } }
+    environment:
+      PORT: "4002"
+      CORS_ORIGINS: "http://localhost:3000"
+      REDIS_URL: "redis://redis:6379"
+    depends_on: { redis: { condition: service_healthy } }
+
+  route:
+    build: { <<: *service-build, args: { SERVICE: route } }
+    environment:
+      PORT: "4003"
+      TRAFFIC_URL: "http://traffic:4002"
+    depends_on: [traffic]
+
+  prediction:
+    build: { <<: *service-build, args: { SERVICE: prediction } }
+    environment:
+      PORT: "4004"
+      TRAFFIC_URL: "http://traffic:4002"
+    depends_on: [traffic]
+
+  gateway:
+    build: { <<: *service-build, args: { SERVICE: gateway } }
+    environment:
+      PORT: "4000"
+      JWT_SECRET: "${JWT_SECRET:-taxico-dev-secret-change-me}"
+      CORS_ORIGINS: "http://localhost:3000"
+      AUTH_URL: "http://auth:4001"
+      TRAFFIC_URL: "http://traffic:4002"
+      ROUTE_URL: "http://route:4003"
+      PREDICTION_URL: "http://prediction:4004"
+    ports: ["4000:4000"]
+    depends_on: [auth, traffic, route, prediction]
+
+  web:
+    build:
+      context: ./apps/web
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:4000"
+    ports: ["3000:3000"]
+    depends_on: [gateway]
+
+volumes:
+  taxico_pg:

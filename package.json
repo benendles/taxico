@@ -1,0 +1,29 @@
+{
+  "name": "taxico",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Taxico — Intelligent Traffic and Taxi Availability Prediction System for Cameroon",
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n gateway,auth,traffic,route,predict,web -c blue,magenta,yellow,green,cyan,white \"npm:dev:gateway\" \"npm:dev:auth\" \"npm:dev:traffic\" \"npm:dev:route\" \"npm:dev:prediction\" \"npm:dev:web\"",
+    "dev:services": "concurrently -n gateway,auth,traffic,route,predict -c blue,magenta,yellow,green,cyan \"npm:dev:gateway\" \"npm:dev:auth\" \"npm:dev:traffic\" \"npm:dev:route\" \"npm:dev:prediction\"",
+    "dev:gateway": "npm run dev -w @taxico/gateway",
+    "dev:auth": "npm run dev -w @taxico/auth",
+    "dev:traffic": "npm run dev -w @taxico/traffic",
+    "dev:route": "npm run dev -w @taxico/route",
+    "dev:prediction": "npm run dev -w @taxico/prediction",
+    "dev:web": "npm run dev -w @taxico/web",
+    "build": "npm run build -w @taxico/gateway && npm run build -w @taxico/auth && npm run build -w @taxico/traffic && npm run build -w @taxico/route && npm run build -w @taxico/prediction && npm run build -w @taxico/web",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
