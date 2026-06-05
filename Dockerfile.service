@@ -1,0 +1,19 @@
+# Generic image for any Taxico backend service.
+# Build from the repository root with: --build-arg SERVICE=<gateway|auth|traffic|route|prediction>
+FROM node:20-alpine AS build
+WORKDIR /repo
+COPY package.json package-lock.json* tsconfig.base.json ./
+COPY packages ./packages
+COPY services ./services
+RUN npm install
+ARG SERVICE
+RUN npm run build -w @taxico/${SERVICE}
+
+FROM node:20-alpine
+WORKDIR /app
+ARG SERVICE
+ENV NODE_ENV=production
+# tsup bundles @taxico/shared into dist; external npm deps resolve from the hoisted modules.
+COPY --from=build /repo/node_modules ./node_modules
+COPY --from=build /repo/services/${SERVICE}/dist ./dist
+CMD ["node", "dist/index.js"]
