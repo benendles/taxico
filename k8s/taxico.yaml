@@ -129,7 +129,7 @@ spec:
           ports: [{ containerPort: 4002 }]
           env:
             - { name: PORT, value: "4002" }
-            - { name: CORS_ORIGINS, value: "http://localhost:3000" }
+            - { name: CORS_ORIGINS, value: "http://72.62.93.99:30001,http://72.62.93.99:30000" }
             - { name: REDIS_URL, value: "redis://redis:6379" }
           readinessProbe:
             httpGet: { path: /health, port: 4002 }
