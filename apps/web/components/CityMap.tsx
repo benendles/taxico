@@ -16,7 +16,9 @@ const STATUS_COLOR: Record<Taxi["status"], string> = {
 };
 
 const styleFor = (theme?: string) =>
-  theme === "light" ? "mapbox://styles/mapbox/light-v11" : "mapbox://styles/mapbox/dark-v11";
+  theme === "light"
+    ? "mapbox://styles/mapbox/navigation-day-v1"
+    : "mapbox://styles/mapbox/navigation-night-v1";
 
 /** Returns an Uber-style colour interpolated from green (cold) to red (hot). */
 function surgeColor(intensity: number): string {
@@ -316,10 +318,14 @@ function MapboxMap({
       container: container.current,
       style: styleFor(resolvedTheme),
       center: CENTER,
-      zoom: 12.2,
+      zoom: 13,
+      pitch: 30,
+      bearing: 0,
       attributionControl: false,
     });
-    m.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
+    m.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "bottom-right");
+    m.addControl(new mapboxgl.ScaleControl({ unit: "metric" }), "bottom-left");
+    m.addControl(new mapboxgl.GeolocateControl({ trackUserLocation: false }), "bottom-right");
     styleTheme.current = resolvedTheme === "light" ? "light" : "dark";
     m.on("load", () => {
       installLayers(m);
