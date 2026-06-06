@@ -407,29 +407,46 @@ function MapboxMap({
     if (destination) add(destination, "#EF4444", "Destination");
   }, [ready, origin, destination]);
 
-  // Driver car marker — smoothly follows driverLocation
+  // Driver car marker + GPS-style camera follow
   useEffect(() => {
     if (!ready || !map.current) return;
 
     if (driverLocation) {
       const lngLat = driverLocation as [number, number];
+
+      // Create or update the car marker
       if (driverMarker.current) {
         driverMarker.current.setLngLat(lngLat);
-        const inner = driverMarker.current.getElement().querySelector<HTMLDivElement>("#driver-inner");
-        if (inner) inner.style.transform = `rotate(${driverHeading}deg)`;
       } else {
         const el = createDriverEl();
         driverMarker.current = new mapboxgl.Marker({ element: el, anchor: "center" })
           .setLngLat(lngLat)
           .addTo(map.current);
-        const inner = el.querySelector<HTMLDivElement>("#driver-inner");
-        if (inner) inner.style.transform = `rotate(${driverHeading}deg)`;
       }
-      // Keep driver smoothly in frame
-      map.current.easeTo({ center: lngLat, duration: 350 });
-    } else {
-      driverMarker.current?.remove();
+      // Rotate car icon to face direction of travel
+      const inner = driverMarker.current.getElement().querySelector<HTMLDivElement>("#driver-inner");
+      if (inner) inner.style.transform = `rotate(${driverHeading}deg)`;
+
+      // GPS navigation camera: keep driver centred, map rotates to face heading, zoom in
+      map.current.easeTo({
+        center: lngLat,
+        bearing: driverHeading,   // rotate map so driver always faces "up"
+        pitch: 50,                // dramatic tilt — like Google Maps / Uber
+        zoom: 15,                 // street-level zoom
+        duration: 400,
+        easing: (t) => t,
+      });
+    } else if (driverMarker.current) {
+      driverMarker.current.remove();
       driverMarker.current = null;
+      // Fly back to city overview when navigation ends
+      map.current.easeTo({
+        center: CENTER as [number, number],
+        bearing: 0,
+        pitch: 30,
+        zoom: 13,
+        duration: 900,
+      });
     }
   }, [ready, driverLocation, driverHeading]);
 
