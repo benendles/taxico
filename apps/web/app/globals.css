@@ -159,6 +159,22 @@
   border-top-color: rgb(var(--hairline)) !important;
 }
 
+/* Driver car marker: pulsing ring around the vehicle position. */
+@keyframes driver-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 0.08; }
+}
+
+.driver-pulse-ring {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(26, 86, 219, 0.4);
+  will-change: opacity;
+  animation: driver-pulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
 /* Honour reduced-motion: collapse the looping live pulse, reveals and transitions. */
 @media (prefers-reduced-motion: reduce) {
   *,
